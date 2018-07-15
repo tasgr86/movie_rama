@@ -1,0 +1,27 @@
+<resources>
+
+    <string name="app_name">MovieRama</string>
+    <string name="appi_key">30842f7c80f80bb3ad8a2fb98195544d</string>
+
+    <string name="description">Description</string>
+    <string name="genres">Genres</string>
+    <string name="reviews">Reviews</string>
+    <string name="similar_movies">Similar Movies</string>
+    <string name="rating">Rating</string>
+    <string name="release_date">Release Date</string>
+
+    <string name="error">Ooops ...</string>
+    <string name="error_message">Fetching movie details has failed</string>
+    <string name="dismiss">Dismiss</string>
+    <string name="title_activity_main2">Main2Activity</string>
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
+    <string name="nav_header_title">Android Studio</string>
+    <string name="nav_header_subtitle">android.studio@android.com</string>
+    <string name="nav_header_desc">Navigation header</string>
+    <string name="action_settings">Settings</string>
+
+    <string name="search_movies">Search Movies</string>
+    <string name="favorite_movies">My Favorites Movies</string>
+
+</resources>
