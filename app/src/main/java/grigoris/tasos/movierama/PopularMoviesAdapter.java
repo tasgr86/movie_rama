@@ -24,38 +24,40 @@ public class PopularMoviesAdapter extends RecyclerView.Adapter<RecyclerView.View
     private final int TYPE_ITEM = 0;
     private final int TYPE_LOADING = 1;
     private Context context;
-    public static ArrayList<ThePopularMovie> moviesToShow, allMovies;
-    public OnLoadMoreListener loadMoreListener;
+    public static ArrayList<TheMovie> moviesToShow;
     private boolean isLoading;
-    private LinearLayoutManager llm;
+    private SearchView searchView;
     private RecyclerView rv;
     private FavoritesManager favoritesManager;
+    private LinearLayoutManager llm;
+    APICallsHandler apiCallsHandler;
 
-    public PopularMoviesAdapter(Context context, RecyclerView rv, LinearLayoutManager llm, ArrayList<ThePopularMovie> movies){
+    public PopularMoviesAdapter(Context context, RecyclerView rv, LinearLayoutManager llm, ArrayList<TheMovie> movies){
 
         this.context = context;
         moviesToShow = movies;
-        allMovies = movies;
-
         this.llm = llm;
+
         this.rv = rv;
         setUpSearchWidget();
-
         rv.addOnScrollListener(new MyScroll(llm));
-
         favoritesManager = new FavoritesManager(context);
+        apiCallsHandler = new APICallsHandler(context);
 
     }
 
-    public void setLoaded(ProgressBar bar) {
+    public void startLoading(ProgressBar bar) {
+
+        isLoading = true;
+        bar.setVisibility(View.VISIBLE);
+
+    }
+
+    public void finishLoading(ProgressBar bar) {
 
         isLoading = false;
         bar.setVisibility(View.GONE);
 
-    }
-
-    public void setOnLoadMoreListener(OnLoadMoreListener loadMoreListener) {
-        this.loadMoreListener = loadMoreListener;
     }
 
     @NonNull
@@ -74,15 +76,20 @@ public class PopularMoviesAdapter extends RecyclerView.Adapter<RecyclerView.View
 
         if (holder instanceof ItemHolder) {
 
-            ThePopularMovie movie = moviesToShow.get(position);
+            System.out.println("list size: " + moviesToShow.size() + " position: " + position + " parsing " +
+                    moviesToShow.get(position).getTitle() + " " + moviesToShow.get(position).getDate());
+
+            TheMovie movie = moviesToShow.get(position);
 
             ((ItemHolder)holder).title.setText(movie.getTitle());
-            ((ItemHolder)holder).date.setText(TimeParser.getFormattedTime(movie.getReleaseDate()));
-            ((ItemHolder)holder).rating.setText("- ".concat(movie.getRating()));
-            Picasso.get().load(MainActivity.IMAGE_URL.concat(movie.getPoster())).
-                    into(((ItemHolder)holder).poster);
+            ((ItemHolder)holder).date.setText(context.getString(R.string.release_date).concat(" : ").
+                    concat(TimeParser.getFormattedTime(movie.getDate())));
+            ((ItemHolder)holder).rating.setText(context.getString(R.string.rating).concat(" : ").concat(movie.getRating()));
 
-            if (favoritesManager.isFavorite(movie.getMovie_id()))
+            Picasso.get().load(MainActivity.IMAGE_URL.concat("w300/").concat(movie.getPoster())).
+                    placeholder(R.drawable.placeholder).into(((ItemHolder)holder).poster);
+
+            if (favoritesManager.isFavorite(movie.getId()))
                 ((ItemHolder)holder).favorite.setImageDrawable(ContextCompat.getDrawable(context, R.drawable.favorite_selected));
             else
                 ((ItemHolder)holder).favorite.setImageDrawable(ContextCompat.getDrawable(context, R.drawable.favorite_unselected));
@@ -104,7 +111,6 @@ public class PopularMoviesAdapter extends RecyclerView.Adapter<RecyclerView.View
     }
 
 
-
     class ItemHolder extends RecyclerView.ViewHolder{
 
         TextView title, date, rating;
@@ -123,23 +129,23 @@ public class PopularMoviesAdapter extends RecyclerView.Adapter<RecyclerView.View
             itemView.setOnClickListener(v -> {
 
                 Intent intent = new Intent(context, ShowMovie.class);
-                intent.putExtra("movie_id", moviesToShow.get(getAdapterPosition()).getMovie_id());
+                intent.putExtra("movie_id", moviesToShow.get(getAdapterPosition()).getId());
                 context.startActivity(intent);
 
             });
 
             favorite.setOnClickListener((view) ->{
 
-                ThePopularMovie movie = moviesToShow.get(getAdapterPosition());
+                TheMovie movie = moviesToShow.get(getAdapterPosition());
 
-                if (favoritesManager.isFavorite(movie.getMovie_id())){
+                if (favoritesManager.isFavorite(movie.getId())){
 
-                    favoritesManager.removeFavorite(movie.getMovie_id());
+                    favoritesManager.removeFavorite(movie.getId());
                     favorite.setImageDrawable(ContextCompat.getDrawable(context, R.drawable.favorite_unselected));
 
                 } else{
 
-                    favoritesManager.addFavorite(movie.getMovie_id());
+                    favoritesManager.addFavorite(movie.getId());
                     favorite.setImageDrawable(ContextCompat.getDrawable(context, R.drawable.favorite_selected));
 
                 }
@@ -163,33 +169,53 @@ public class PopularMoviesAdapter extends RecyclerView.Adapter<RecyclerView.View
         }
     }
 
-
     private void setUpSearchWidget(){
 
         SearchManager searchManager = (SearchManager) context.getSystemService(Context.SEARCH_SERVICE);
-        SearchView searchView = ((Activity)context).findViewById(R.id.search_view);
+        searchView = ((Activity)context).findViewById(R.id.search_view);
         searchView.setSearchableInfo(searchManager.getSearchableInfo(((Activity)context).getComponentName()));
         searchView.setMaxWidth(Integer.MAX_VALUE);
 
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
-            public boolean onQueryTextSubmit(String query) {
-                // filter recycler view when query submitted
-
-                new MyFilter(PopularMoviesAdapter.this, allMovies).filter(query);
-                return false;
-            }
+            public boolean onQueryTextSubmit(String query) { return false; }
 
             @Override
             public boolean onQueryTextChange(String query) {
-                // filter recycler view when text is changed
 
-                new MyFilter(PopularMoviesAdapter.this, allMovies).filter(query);
+                if (!query.isEmpty()){
+
+                    apiCallsHandler.apiCallsListener = (str) -> {
+
+                        moviesToShow.clear();
+                        moviesToShow = MyJSONParser.parseMovies(str.get(0), 0);
+                        notifyDataSetChanged();
+
+                    };
+                    apiCallsHandler.searchMovie(query, 1);
+
+
+                }else {
+
+                    apiCallsHandler.apiCallsListener = (str -> {
+
+                        moviesToShow.clear();
+                        moviesToShow = MyJSONParser.parseMovies(str.get(0), 0);
+                        notifyDataSetChanged();
+
+
+                    });
+                    apiCallsHandler.fetchFirstPage(true);
+
+                }
+
                 return false;
             }
         });
 
     }
+
+
 
     private class MyScroll extends OnScrollListener {
 
@@ -212,14 +238,48 @@ public class PopularMoviesAdapter extends RecyclerView.Adapter<RecyclerView.View
 
             int lastViewedItem = llm.findLastCompletelyVisibleItemPosition();
 
-            if(lastViewedItem == allMovies.size() && !isLoading){
+            if(lastViewedItem == moviesToShow.size() && !isLoading){
 
                 RecyclerView.ViewHolder holder = rv.findViewHolderForAdapterPosition(lastViewedItem);
                 ProgressBar pBar = ((LoadingViewHolder)holder).progressBar;
 
-                pBar.setVisibility(View.VISIBLE);
-                isLoading = true;
-                loadMoreListener.onLoadMore(pBar);
+                if (MyJSONParser.getLastType() == 0){
+
+                    startLoading(pBar);
+
+                    apiCallsHandler.apiCallsListener = (str) -> {
+
+                        moviesToShow.addAll(MyJSONParser.parseMovies(str.get(0), 0));
+                        finishLoading(pBar);
+                        notifyDataSetChanged();
+
+                    };
+                    apiCallsHandler.loadMorePopular();
+
+                } else {
+
+                    System.out.println("loading more SEARCH movies ... " + MyJSONParser.hasNoMoreSearchPages());
+
+                    if(MyJSONParser.hasNoMoreSearchPages())
+                        return;
+
+                    String query = searchView.getQuery().toString();
+
+                    if (!query.isEmpty()) {
+
+                        startLoading(pBar);
+
+                        apiCallsHandler.apiCallsListener = (str) -> {
+
+                            moviesToShow.addAll(MyJSONParser.parseMovies(str.get(0),1));
+                            notifyDataSetChanged();
+                            finishLoading(pBar);
+
+                        };
+                        apiCallsHandler.searchMovie(query, MyJSONParser.getLastSearchPage());
+
+                    }
+                }
             }
         }
     }

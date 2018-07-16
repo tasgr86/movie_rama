@@ -24,4 +24,6 @@
     <string name="search_movies">Search Movies</string>
     <string name="favorite_movies">My Favorites Movies</string>
 
+    <string name="loading">Loading</string>
+
 </resources>

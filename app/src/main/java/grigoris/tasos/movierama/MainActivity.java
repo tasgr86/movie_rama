@@ -1,5 +1,6 @@
 package grigoris.tasos.movierama;
 
+import android.app.Dialog;
 import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.design.widget.NavigationView;
@@ -13,23 +14,22 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.view.MenuItem;
-import android.view.View;
-import android.widget.ProgressBar;
-import com.github.ybq.android.spinkit.style.Wave;
 import java.util.ArrayList;
+import dmax.dialog.SpotsDialog;
 
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener{
 
-    public static final String BASE_URL = "https://api.themoviedb.org/3/movie/";
-    public static final String POPURAL_URL = "popular";
-    public static final String IMAGE_URL = "https://image.tmdb.org/t/p/w500";
+    public static final String BASE_URL = "https://api.themoviedb.org/3/";
+    public static final String POPURAL_URL = "movie/popular";
+    public static final String IMAGE_URL = "https://image.tmdb.org/t/p/";
+    public static final String SEARCH_MOVIE = "search/movie";
     private RecyclerView rv;
-    private ArrayList<ThePopularMovie> popularMovies;
+    private ArrayList<TheMovie> popularMovies;
     private PopularMoviesAdapter adapter;
-    private ProgressBar progressBar;
     private SwipeRefreshLayout swipeRefresh;
     private Toolbar toolbar;
     private DrawerLayout drawer;
+    private APICallsHandler apiCallsHandler;
 
     @Override
     protected void onResume() {
@@ -46,6 +46,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
 
+        apiCallsHandler = new APICallsHandler(this);
+
         toolbar = findViewById(R.id.main_toolbar);
         setSupportActionBar(toolbar);
 
@@ -59,39 +61,31 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         navigationView.setNavigationItemSelectedListener(this);
 
         swipeRefresh = findViewById(R.id.swipeContainer);
-        progressBar = findViewById(R.id.spin);
-        progressBar.setIndeterminateDrawable(new Wave());
         rv = findViewById(R.id.rv);
 
-        fetchFirstPage(false);
+        swipeRefresh.setOnRefreshListener(() -> {
 
-        progressBar.setVisibility(View.VISIBLE);
-        swipeRefresh.setOnRefreshListener(() -> fetchFirstPage(true));
-        
-    }
+            apiCallsHandler.apiCallsListener = (str -> {
 
-
-    private void fetchFirstPage(boolean isSwipeRefresh){
-
-        GET get = new GET();
-        get.getListener = (str) -> {
-
-            popularMovies = new ArrayList<>();
-            popularMovies.addAll(MyJSONParser.parserPopularMovies(str.get(0)));
-            loadTheAdapter(popularMovies);
-            addListener();
-            progressBar.setVisibility(View.GONE);
-
-            if (isSwipeRefresh)
+                popularMovies.clear();
+                popularMovies = MyJSONParser.parseMovies(str.get(0), 0);
+                loadTheAdapter(popularMovies);
                 swipeRefresh.setRefreshing(false);
 
-        };
+            });
+            apiCallsHandler.fetchFirstPage(true);
 
-        get.execute(BASE_URL.concat(POPURAL_URL).concat("?api_key=").concat(getString(R.string.appi_key)));
+        });
+
+        popularMovies = getIntent().getParcelableArrayListExtra("popular_movies");
+        loadTheAdapter(popularMovies);
+
 
     }
 
-    private void loadTheAdapter(ArrayList<ThePopularMovie> popularMovies){
+
+
+    private void loadTheAdapter(ArrayList<TheMovie> popularMovies){
 
         LinearLayoutManager llm = new LinearLayoutManager(this);
         adapter = new PopularMoviesAdapter(this, rv, llm, popularMovies);
@@ -101,44 +95,23 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
 
-    private void addListener(){
-
-        adapter.setOnLoadMoreListener((bar) -> {
-
-            GET get2 = new GET();
-            get2.getListener = (str) -> {
-
-                new Handler().postDelayed(() -> {
-
-                    popularMovies.addAll(MyJSONParser.parserPopularMovies(str.get(0)));
-                    adapter.setLoaded(bar);
-                    adapter.notifyDataSetChanged();
-
-                }, 1000);
-
-            };
-            get2.execute(BASE_URL.concat(POPURAL_URL).concat("?api_key=").
-                    concat(getString(R.string.appi_key)).concat("&page=").
-                    concat(String.valueOf(MyJSONParser.getPopularPage())));
-
-        });
-    }
-
     @Override
     public boolean onNavigationItemSelected(@NonNull MenuItem item) {
 
         int id = item.getItemId();
 
-        if (id == R.id.search_movies) {
+        new Handler().postDelayed(() -> {
 
-        }else if (id == R.id.favorites_movies){
+            if (id == R.id.search_movies) {
+
+            }else if (id == R.id.favorites_movies){
 
 
-        }
+            }
 
+        }, 300);
 
         drawer.closeDrawer(GravityCompat.START);
-
 
         return false;
     }

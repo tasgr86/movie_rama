@@ -7,18 +7,40 @@ import java.util.ArrayList;
 
 public class MyJSONParser {
 
-    private static int popularPage;
+    private static int lastPopularPage;
+    private static int lastSearchPage;
+    private static boolean hasNoMorePopularPages;
+    private static boolean hasNoMoreSearchPages;
+    private static int lastType;
 
-    public static ArrayList<ThePopularMovie> parserPopularMovies(String response){
+    public static ArrayList<TheMovie> parseMovies(String response, int type){  // 0 for popular, 1 for search
 
-        ArrayList<ThePopularMovie> popularMovies = new ArrayList<>();
+        ArrayList<TheMovie> popularMovies = new ArrayList<>();
+        lastType = type;
 
         try {
 
             JSONObject obj = new JSONObject(response);
             JSONArray array = obj.getJSONArray("results");
 
-            popularPage = obj.getInt("page");
+            if (type == 0){
+
+                lastPopularPage = obj.getInt("page");
+                lastSearchPage = 0;
+
+                hasNoMorePopularPages = obj.getInt("total_pages") <= obj.getInt("page");
+                hasNoMoreSearchPages = false;
+
+            }else {
+
+                lastSearchPage = obj.getInt("page");
+                lastPopularPage = 0;
+
+                hasNoMoreSearchPages = obj.getInt("total_pages") <= obj.getInt("page");
+                hasNoMorePopularPages = false;
+
+            }
+
 
             for(int i=0; i<array.length(); i++){
 
@@ -30,9 +52,11 @@ public class MyJSONParser {
                 String rating = temp_obj.getString("vote_average");
                 String poster = temp_obj.getString("poster_path");
 
-                popularMovies.add(new ThePopularMovie(movie_id, poster, title, release_date, rating));
+                popularMovies.add(new TheMovie(movie_id, poster, title, release_date, rating));
 
             }
+
+            print();
 
             return popularMovies;
 
@@ -44,10 +68,30 @@ public class MyJSONParser {
         }
     }
 
-    public static int getPopularPage() {
-        return popularPage + 1;
+    public static int getLastPopularPage() {
+        return lastPopularPage + 1;
     }
 
+    public static int getLastSearchPage() {
+        return lastSearchPage + 1;
+    }
+
+    public static boolean hasNoMorePopularPages() {
+
+        return hasNoMorePopularPages;
+
+    }
+
+    public static boolean hasNoMoreSearchPages() {
+
+        return hasNoMoreSearchPages;
+
+    }
+
+    public static int getLastType() {
+
+        return lastType;
+    }
 
     public static TheMovie parseCredits(String response){
 
@@ -144,5 +188,16 @@ public class MyJSONParser {
             return null;
 
         }
+    }
+
+
+    private static void print(){
+
+        System.out.println("last popular page " + lastPopularPage);
+        System.out.println("last search page " + lastSearchPage);
+        System.out.println("last type " + lastType);
+        System.out.println("has no more popular pages " + hasNoMorePopularPages());
+        System.out.println("has no more search pages " + hasNoMoreSearchPages());
+
     }
 }

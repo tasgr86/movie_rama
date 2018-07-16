@@ -3,7 +3,6 @@ package grigoris.tasos.movierama;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.Drawable;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.content.ContextCompat;
@@ -17,8 +16,6 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
-import com.github.ybq.android.spinkit.SpinKitView;
-import com.github.ybq.android.spinkit.style.Wave;
 import com.squareup.picasso.Picasso;
 import java.util.ArrayList;
 
@@ -31,31 +28,23 @@ public class ShowMovie extends AppCompatActivity {
     private Toolbar toolbar;
     private ImageView poster, favorite;
     private TextView date, rating, description, genres, reviewsLabel, similarMoviesLabel;
-    private SpinKitView spin;
     private RecyclerView reviews_rv, similar_rv;
     private ReviewsAdapter reviewsAdapter;
     private FavoritesManager favoritesManager;
+    private APICallsHandler apiCallsHandler;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
 
         super.onCreate(savedInstanceState);
 
+        apiCallsHandler = new APICallsHandler(this);
+
         int movie_id = getIntent().getIntExtra("movie_id", 0);
 
-        String credits = MainActivity.BASE_URL.concat(String.valueOf(movie_id)).concat("?api_key=").
-                concat(getString(R.string.appi_key));
+        apiCallsHandler.apiCallsListener = (str) -> {
 
-        String reviews = MainActivity.BASE_URL.concat(String.valueOf(movie_id))
-                .concat("/reviews").concat("?api_key=").concat(getString(R.string.appi_key));
-
-        String similar = MainActivity.BASE_URL.concat(String.valueOf(movie_id))
-                .concat("/similar").concat("?api_key=").concat(getString(R.string.appi_key));
-
-        GET get = new GET();
-        get.getListener = s -> {
-
-            TheMovie movie = MyJSONParser.parseCredits(s.get(0));
+            TheMovie movie = MyJSONParser.parseCredits(str.get(0));
 
             if (movie == null){
 
@@ -64,22 +53,25 @@ public class ShowMovie extends AppCompatActivity {
 
             }
 
-            setUpViews(movie);
+            setUpViews();
+            setUpToolbar(movie);
+            setUpFavorites(movie);
+            fillTextViewStrings();
             fillMandatoryViews(movie);
-            loadReviews(MyJSONParser.parseReviews(s.get(1)));
-            loadSimilarMovies(MyJSONParser.parseSimilar(s.get(2)));
-
-            spin.setVisibility(View.GONE);
+            loadReviews(MyJSONParser.parseReviews(str.get(1)));
+            loadSimilarMovies(MyJSONParser.parseSimilar(str.get(2)));
 
         };
-        get.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, credits, reviews, similar);
+        apiCallsHandler.fetchMovie(movie_id);
+
 
     }
 
 
     private void fillMandatoryViews(TheMovie movie) {
 
-        Picasso.get().load(MainActivity.IMAGE_URL.concat(movie.getPoster())).into(poster);
+        Picasso.get().load(MainActivity.IMAGE_URL.concat("original/").concat(movie.getPoster())).
+                placeholder(R.drawable.placeholder).into(poster);
         date.setText(getString(R.string.release_date).concat(" : ").concat(TimeParser.getFormattedTime(movie.getDate())));
         rating.setText(getString(R.string.rating).concat(" : ").concat(movie.getRating()));
         genres.setText(movie.getGenre());
@@ -103,6 +95,7 @@ public class ShowMovie extends AppCompatActivity {
         reviews_rv.addItemDecoration(divider);
         reviews_rv.setLayoutManager(llm);
         reviews_rv.setAdapter(reviewsAdapter);
+        reviews_rv.setNestedScrollingEnabled(false);
 
     }
 
@@ -134,9 +127,24 @@ public class ShowMovie extends AppCompatActivity {
 
     }
 
-    private void setUpViews(TheMovie movie){
+    private void setUpViews(){
 
         setContentView(R.layout.show_movie);
+
+        favorite = findViewById(R.id.favorite);
+        reviews_rv = findViewById(R.id.reviews_rv);
+        similar_rv = findViewById(R.id.similar_rv);
+        date = findViewById(R.id.date);
+        rating = findViewById(R.id.rating);
+        description = findViewById(R.id.description);
+        genres = findViewById(R.id.genres);
+        poster = findViewById(R.id.poster);
+        reviewsLabel = findViewById(R.id.reviews_label);
+        similarMoviesLabel = findViewById(R.id.similar_movies_label);
+
+    }
+
+    private void setUpToolbar(TheMovie movie){
 
         toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -147,20 +155,19 @@ public class ShowMovie extends AppCompatActivity {
         upArrow.setColorFilter(Color.parseColor("#FFFFFF"), PorterDuff.Mode.SRC_ATOP);
         getSupportActionBar().setHomeAsUpIndicator(upArrow);
 
-        favorite = findViewById(R.id.favorite);
-        reviews_rv = findViewById(R.id.reviews_rv);
-        similar_rv = findViewById(R.id.similar_rv);
-        spin = findViewById(R.id.spin);
-        date = findViewById(R.id.date);
-        rating = findViewById(R.id.rating);
-        description = findViewById(R.id.description);
-        genres = findViewById(R.id.genres);
-        poster = findViewById(R.id.poster);
-        reviewsLabel = findViewById(R.id.reviews_label);
-        similarMoviesLabel = findViewById(R.id.similar_movies_label);
+    }
 
-        spin.setIndeterminateDrawable(new Wave());
-        spin.setVisibility(View.VISIBLE);
+    private void fillTextViewStrings(){
+
+        ((TextView)findViewById(R.id.description_label)).setText(getString(R.string.description));
+        ((TextView)findViewById(R.id.genres_label)).setText(getString(R.string.genres));
+        ((TextView)findViewById(R.id.reviews_label)).setText(getString(R.string.reviews));
+        ((TextView)findViewById(R.id.similar_movies_label)).setText(getString(R.string.similar_movies));
+
+    }
+
+
+    private void setUpFavorites(TheMovie movie){
 
         favoritesManager = new FavoritesManager(this);
 

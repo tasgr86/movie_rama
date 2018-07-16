@@ -8,12 +8,20 @@ public class TimeParser {
 
     public static String getFormattedTime(String initialDate){
 
-        DateTimeFormatter dtf = DateTimeFormat.forPattern("yyyy-mm-dd");
-        DateTimeFormatter dtf2 = DateTimeFormat.forPattern("dd MMM yyyy");
+        try {
 
-        LocalDate ld = new LocalDate(dtf.parseLocalDate(initialDate));
+            DateTimeFormatter dtf = DateTimeFormat.forPattern("yyyy-mm-dd");
+            DateTimeFormatter dtf2 = DateTimeFormat.forPattern("dd MMM yyyy");
 
-        return dtf2.print(ld);
+            LocalDate ld = new LocalDate(dtf.parseLocalDate(initialDate));
 
+            return dtf2.print(ld);
+
+        }catch (Exception e){
+
+            e.printStackTrace();
+            return "";
+
+        }
     }
 }

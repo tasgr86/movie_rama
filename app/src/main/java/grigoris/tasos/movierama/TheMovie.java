@@ -1,6 +1,9 @@
 package grigoris.tasos.movierama;
 
-public class TheMovie {
+import android.os.Parcel;
+import android.os.Parcelable;
+
+public class TheMovie implements Parcelable{
 
     private int id;;
     private String genre, title, poster, overview, date, rating;
@@ -19,6 +22,17 @@ public class TheMovie {
     }
 
 
+    public TheMovie(int id, String poster, String title, String date, String rating){
+
+        this.id = id;
+        this.poster = poster;
+        this.title = title;
+        this.date = date;
+        this.rating = rating;
+
+    }
+
+
     public TheMovie (int id, String title, String poster){
 
         this.id = id;
@@ -26,6 +40,28 @@ public class TheMovie {
         this.poster = poster;
 
     }
+
+    protected TheMovie(Parcel in) {
+        id = in.readInt();
+        genre = in.readString();
+        title = in.readString();
+        poster = in.readString();
+        overview = in.readString();
+        date = in.readString();
+        rating = in.readString();
+    }
+
+    public static final Creator<TheMovie> CREATOR = new Creator<TheMovie>() {
+        @Override
+        public TheMovie createFromParcel(Parcel in) {
+            return new TheMovie(in);
+        }
+
+        @Override
+        public TheMovie[] newArray(int size) {
+            return new TheMovie[size];
+        }
+    };
 
     public int getId() {
         return id;
@@ -53,5 +89,21 @@ public class TheMovie {
 
     public String getRating() {
         return rating;
+    }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeInt(id);
+        dest.writeString(genre);
+        dest.writeString(title);
+        dest.writeString(poster);
+        dest.writeString(overview);
+        dest.writeString(date);
+        dest.writeString(rating);
     }
 }

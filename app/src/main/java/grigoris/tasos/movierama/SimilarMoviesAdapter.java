@@ -34,8 +34,8 @@ public class SimilarMoviesAdapter extends RecyclerView.Adapter<SimilarMoviesAdap
     @Override
     public void onBindViewHolder(@NonNull SimilarMoviesAdapter.Holder holder, int position) {
 
-        String url = MainActivity.IMAGE_URL.concat(movies.get(position).getPoster());
-        Picasso.get().load(url).into(holder.poster);
+        String url = MainActivity.IMAGE_URL.concat("w300/").concat(movies.get(position).getPoster());
+        Picasso.get().load(url).placeholder(R.drawable.placeholder).into(holder.poster);
 
     }
 

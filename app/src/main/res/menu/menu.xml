@@ -7,12 +7,12 @@
 
         <item
             android:id="@+id/search_movies"
-            android:icon="@drawable/ic_menu_camera"
+            android:icon="@drawable/search_icon"
             android:title="@string/search_movies" />
 
         <item
             android:id="@+id/favorites_movies"
-            android:icon="@drawable/ic_menu_gallery"
+            android:icon="@drawable/favorite_icon"
             android:title="@string/favorite_movies" />
 
     </group>
