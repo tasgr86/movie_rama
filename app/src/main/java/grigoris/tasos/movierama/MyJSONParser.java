@@ -4,8 +4,11 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import java.util.ArrayList;
+import java.util.StringJoiner;
+import grigoris.tasos.movierama.POJOs.TheMovie;
+import grigoris.tasos.movierama.POJOs.TheReview;
 
-public class MyJSONParser {
+public class MyJSONParser implements IMyJSONParser{
 
     private static int lastPopularPage;
     private static int lastSearchPage;
@@ -13,7 +16,9 @@ public class MyJSONParser {
     private static boolean hasNoMoreSearchPages;
     private static int lastType;
 
-    public static ArrayList<TheMovie> parseMovies(String response, int type){  // 0 for popular, 1 for search
+    // lastType gets value of '0' for popular movies or 1 for search movies
+
+    public ArrayList<TheMovie> parseMovies(String response, int type){
 
         ArrayList<TheMovie> popularMovies = new ArrayList<>();
         lastType = type;
@@ -56,57 +61,57 @@ public class MyJSONParser {
 
             }
 
-            print();
-
             return popularMovies;
 
         } catch (JSONException e) {
 
             e.printStackTrace();
-            return null;
+            return popularMovies;
 
         }
     }
 
-    public static int getLastPopularPage() {
+    public int getLastPopularPage() {
         return lastPopularPage + 1;
     }
 
-    public static int getLastSearchPage() {
+    public int getLastSearchPage() {
         return lastSearchPage + 1;
     }
 
-    public static boolean hasNoMorePopularPages() {
+    public boolean hasNoMorePopularPages() {
 
         return hasNoMorePopularPages;
 
     }
 
-    public static boolean hasNoMoreSearchPages() {
+    public boolean hasNoMoreSearchPages() {
 
         return hasNoMoreSearchPages;
 
     }
 
-    public static int getLastType() {
+    public int getLastType() {
 
         return lastType;
     }
 
-    public static TheMovie parseCredits(String response){
+    public TheMovie parseCredits(String response){
 
         try {
 
             JSONObject obj = new JSONObject(response);
 
             JSONArray genres = obj.getJSONArray("genres");
-            String genre = "";
+            StringJoiner joiner = new StringJoiner(", ");
 
             for(int i=0; i<genres.length(); i++){
 
-                genre = genres.getJSONObject(i).getString("name");
+                joiner.add(genres.getJSONObject(i).getString("name"));
 
             }
+
+            String genre = joiner.toString();
 
             int id = obj.getInt("id");
             String title = obj.getString("original_title");
@@ -126,7 +131,7 @@ public class MyJSONParser {
     }
 
 
-    public static ArrayList<TheReview> parseReviews(String response){
+    public ArrayList<TheReview> parseReviews(String response){
 
         ArrayList<TheReview> reviews = new ArrayList<>();
 
@@ -154,13 +159,13 @@ public class MyJSONParser {
         } catch (JSONException e) {
 
             e.printStackTrace();
-            return null;
+            return reviews;
 
         }
     }
 
 
-    public static ArrayList<TheMovie> parseSimilar(String response){
+    public ArrayList<TheMovie> parseSimilar(String response){
 
         ArrayList<TheMovie> similarMovies = new ArrayList<>();
 
@@ -185,19 +190,9 @@ public class MyJSONParser {
         } catch (JSONException e) {
 
             e.printStackTrace();
-            return null;
+            return similarMovies;
 
         }
     }
 
-
-    private static void print(){
-
-        System.out.println("last popular page " + lastPopularPage);
-        System.out.println("last search page " + lastSearchPage);
-        System.out.println("last type " + lastType);
-        System.out.println("has no more popular pages " + hasNoMorePopularPages());
-        System.out.println("has no more search pages " + hasNoMoreSearchPages());
-
-    }
 }

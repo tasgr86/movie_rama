@@ -73,8 +73,7 @@ public class GET extends AsyncTask<String, Void, ArrayList<String>> {
                 br.close();
                 return sb.toString();
             }
-        } catch (IOException e) {
-            e.printStackTrace();
+
         } catch (Exception ex) {
             ex.printStackTrace();
         }

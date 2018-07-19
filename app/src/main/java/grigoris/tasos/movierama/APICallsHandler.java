@@ -1,42 +1,35 @@
 package grigoris.tasos.movierama;
 
-import android.app.Dialog;
 import android.content.Context;
 import android.os.AsyncTask;
-import dmax.dialog.SpotsDialog;
+import java.util.ArrayList;
 
-public class APICallsHandler {
+public class APICallsHandler implements IAPICallsHandler{
 
-    private Context context;
-    public APICallsListener apiCallsListener;
-    private Dialog loadingDialog;
+    public static final String          BASE_URL = "https://api.themoviedb.org/3/";
+    public static final String          POPURAL_URL = "movie/popular";
+    public static final String          SEARCH_MOVIE = "search/movie";
+    public static final String          IMAGE_URL = "https://image.tmdb.org/t/p/";
+    private Context                     context;
+    public APICallsListener             apiCallsListener;
+    private MyJSONParser                parser;
 
     public APICallsHandler(Context context){
 
         this.context = context;
-        loadingDialog = new SpotsDialog.Builder().setContext(context).
-                setMessage(context.getString(R.string.loading)).setCancelable(false).build();
+        parser = new MyJSONParser();
 
     }
 
+    public void setListener(APICallsListener listener) {
+        apiCallsListener = listener;
+    }
 
-    public void fetchFirstPage(boolean showLoadingDialog){
-
-        if(showLoadingDialog)
-            loadingDialog.show();
+    public void fetchFirstPage(){
 
         GET get = new GET();
-        get.getListener = (str) -> {
-
-            apiCallsListener.fetchedResults(str);
-
-            if (showLoadingDialog)
-                loadingDialog.dismiss();
-
-        };
-
-        get.execute(MainActivity.BASE_URL.concat(MainActivity.POPURAL_URL).concat("?api_key=").
-                concat(context.getString(R.string.appi_key)));
+        get.getListener = (str) -> apiCallsListener.fetchedResults(str);
+        get.execute(BASE_URL.concat(POPURAL_URL).concat("?api_key=").concat(context.getString(R.string.appi_key)));
 
     }
 
@@ -45,9 +38,8 @@ public class APICallsHandler {
 
         GET get2 = new GET();
         get2.getListener = (str) -> apiCallsListener.fetchedResults(str);
-        get2.execute(MainActivity.BASE_URL.concat(MainActivity.POPURAL_URL).concat("?api_key=").
-                concat(context.getString(R.string.appi_key)).concat("&page=").
-                concat(String.valueOf(MyJSONParser.getLastPopularPage())));
+        get2.execute(BASE_URL.concat(POPURAL_URL).concat("?api_key=").concat(context.getString(R.string.appi_key)).
+                concat("&page=").concat(String.valueOf(parser.getLastPopularPage())));
 
 
     }
@@ -57,10 +49,8 @@ public class APICallsHandler {
 
         GET get = new GET();
         get.getListener = (str) -> apiCallsListener.fetchedResults(str);
-
-        get.execute(MainActivity.BASE_URL.concat(MainActivity.SEARCH_MOVIE).concat("?api_key=").
-                concat(context.getString(R.string.appi_key)).concat("&query=").concat(text).
-                concat("&page=").concat(String.valueOf(page)));
+        get.execute(BASE_URL.concat(SEARCH_MOVIE).concat("?api_key=").concat(context.getString(R.string.appi_key)).
+                concat("&query=").concat(text).concat("&page=").concat(String.valueOf(page)));
     }
 
 
@@ -68,26 +58,37 @@ public class APICallsHandler {
 
     public void fetchMovie(int movie_id){
 
-        loadingDialog.show();
-
-        String credits = MainActivity.BASE_URL.concat("movie/").concat(String.valueOf(movie_id)).concat("?api_key=").
+        String credits = BASE_URL.concat("movie/").concat(String.valueOf(movie_id)).concat("&append_to_response=credits").concat("?api_key=").
                 concat(context.getString(R.string.appi_key));
 
-        String reviews = MainActivity.BASE_URL.concat("movie/").concat(String.valueOf(movie_id))
+        String reviews = BASE_URL.concat("movie/").concat(String.valueOf(movie_id))
                 .concat("/reviews").concat("?api_key=").concat(context.getString(R.string.appi_key));
 
-        String similar = MainActivity.BASE_URL.concat("movie/").concat(String.valueOf(movie_id))
+        String similar = BASE_URL.concat("movie/").concat(String.valueOf(movie_id))
                 .concat("/similar").concat("?api_key=").concat(context.getString(R.string.appi_key));
 
         GET get = new GET();
-        get.getListener = s -> {
+        get.getListener = s -> apiCallsListener.fetchedResults(s);
+        get.execute(credits, reviews, similar);
 
-            apiCallsListener.fetchedResults(s);
-            loadingDialog.dismiss();
-            loadingDialog.dismiss();
+    }
 
-        };
-        get.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, credits, reviews, similar);
+
+
+    public void fetchPopularMovies(ArrayList<Integer> ids){
+
+        String urls[] = new String[ids.size()];
+
+        for(int i=0; i<ids.size(); i++){
+
+            urls[i] = BASE_URL.concat("movie/").concat(String.valueOf(ids.get(i))).concat("?api_key=").
+                    concat(context.getString(R.string.appi_key));
+
+        }
+
+        GET get = new GET();
+        get.getListener = s -> apiCallsListener.fetchedResults(s);
+        get.execute(urls);
 
     }
 }
